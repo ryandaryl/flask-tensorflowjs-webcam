@@ -1,16 +1,21 @@
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.11.7"></script>
-<script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
 <html>
 <body>
   <video id="video" autoplay></video>
   <canvas width="640" id="canvas" height="480" style="display:none;"></canvas>
+  <div class="obj" style="
+    position: absolute;
+    background: red;
+    height: 20px;
+    width: 20px;
+    top: 0px;
+  "></div>
   <div id="stats" style="
     position: absolute;
     font-size: 40;
     color: white;
     top: 0px;
   ">
-  No write
+  255
   </div>
   <script>
     canvas = document.getElementById('canvas')
@@ -26,47 +31,19 @@
     .then(stream => {
       document.getElementById('video').srcObject = stream
     })
-    top_offset = 0
-    w = 120
-    h = 160
-    stride_length = 5
-    shape_array = Array(Math.ceil((h + 1) / stride_length))
-    for (i = 0; i < shape_array.length; i++) {
-        shape_array[i] = document.createElement("div")
-        shape_array[i].innerHTML = `
-            <div id="shape${i}" style="
-                position: absolute;
-                background: red;
-                height: 20px;
-                width: 20px;
-                top: ${top_offset + i * stride_length * 4}px;
-                left: 0px;
-            "></div>
-        `
-        document.body.appendChild(shape_array[i])
-        shape_array[i] = document.getElementById(`shape${i}`)
-    }
-    last_time = Date.now()
-    setInterval(() => {tf.tidy(() => {
-      context.drawImage(video, 0, 0, w, h)
-      data = context.getImageData(0, 0, w, h).data
-      array1 = nj.zeros([w,h]).tolist()
-      for (i = 0; i < data.length; i=i+4) {
-        j = i / 4
-        array1[parseInt(j) % w][parseInt(j / w)] = data[i]
-      }
-      m = tf.tensor2d(array1, [w, h])
-      a = tf.argMax(m)
-      indices = tf.tensor1d(nj.arange(0, h + 1, stride_length).tolist(), 'int32')
-      b = a.gather(indices)
-      for (i = 0; i < shape_array.length; i++) {
-          shape_array[i].style.left = b.get([i]) * 4
-      }
-      now = Date.now()
-      stats.innerHTML = parseInt(1000 / (now - last_time))
-      last_time = now
-      return undefined
-    })}, 100)
+    fps = 50
+    i = 0
+    range = 50
+    voffset = 50
+    obj = document.getElementsByClassName('obj')[0]
+    stats = document.getElementById('stats')
+    animation_interval = setInterval(a => {
+      obj.style.top = voffset + range/2 + range * Math.sin(i / 100) + 'px'
+      i = i + 1
+      context.drawImage(video, 0, 0, 320, 240)
+      //data = canvas.getImageData()
+      data = canvas.toDataURL("image/jpeg")
+    }, 1000 / fps)
   </script>
 </body>
 </html>
