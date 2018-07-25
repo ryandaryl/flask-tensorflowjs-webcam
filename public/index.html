@@ -1,0 +1,49 @@
+<html>
+<body>
+  <video id="video" autoplay></video>
+  <canvas width="640" id="canvas" height="480" style="display:none;"></canvas>
+  <div class="obj" style="
+    position: absolute;
+    background: red;
+    height: 20px;
+    width: 20px;
+    top: 0px;
+  "></div>
+  <div id="stats" style="
+    position: absolute;
+    font-size: 40;
+    color: white;
+    top: 0px;
+  ">
+  255
+  </div>
+  <script>
+    canvas = document.getElementById('canvas')
+    context = canvas.getContext('2d')
+    navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        width: 640,
+        height: 480,
+        facingMode: 'environment'
+      }
+    })
+    .then(stream => {
+      document.getElementById('video').srcObject = stream
+    })
+    fps = 50
+    i = 0
+    range = 50
+    voffset = 50
+    obj = document.getElementsByClassName('obj')[0]
+    stats = document.getElementById('stats')
+    animation_interval = setInterval(a => {
+      obj.style.top = voffset + range/2 + range * Math.sin(i / 100) + 'px'
+      i = i + 1
+      context.drawImage(video, 0, 0, 320, 240)
+      //data = canvas.getImageData()
+      data = canvas.toDataURL("image/jpeg")
+    }, 1000 / fps)
+  </script>
+</body>
+</html>
