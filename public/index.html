@@ -31,19 +31,19 @@
     .then(stream => {
       document.getElementById('video').srcObject = stream
     })
-    fps = 50
     i = 0
     range = 50
     voffset = 50
     obj = document.getElementsByClassName('obj')[0]
     stats = document.getElementById('stats')
-    animation_interval = setInterval(a => {
+    animation_interval = setInterval(() => {
       obj.style.top = voffset + range/2 + range * Math.sin(i / 100) + 'px'
       i = i + 1
-      context.drawImage(video, 0, 0, 320, 240)
+      context.drawImage(video, 0, 0, 640, 480)
       //data = canvas.getImageData()
       data = canvas.toDataURL("image/jpeg")
-    }, 1000 / fps)
+      stats.innerHTML = data.length
+    }, 20)
   </script>
 </body>
 </html>
