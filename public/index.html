@@ -1,17 +1,5 @@
-
-
-<script>
-a = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/']
-pad = '000000'
-b64_code = new Array(123)
-a.map((a, i) => {
-  str = i.toString(2)
-  b64_code[a.charCodeAt(0)] = pad.substring(0, pad.length - str.length) + str})
-function base64Decode(c, b) {
-  return b64_code[c.charCodeAt(0)]
-}
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.11.7"></script>
+<script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
 <html>
 <body>
   <video id="video" autoplay></video>
@@ -57,12 +45,18 @@ function base64Decode(c, b) {
       context.drawImage(video, 0, 0, 320, 240)
       data = context.getImageData(0, 0, 320, 240).data
       //data = canvas.toDataURL("image/jpeg")
-      b = 0
-      for (j = 1000; j < 1001; j++) {
-        b = data[j]
-      }
+
+      a = 100
+      b = 40
+      c = 100
+      array1 = nj.random([a,b]).tolist()
+      m = tf.tensor2d(array1, [a, b])
+      array2 = nj.random([b,c]).tolist()
+      n = tf.tensor2d(array2, [b, c])
+      d = m.matMul(n)
+
       now = Date.now()
-      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + b
+      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + data[1000]
       last_time = now
     }, 20)
   </script>
