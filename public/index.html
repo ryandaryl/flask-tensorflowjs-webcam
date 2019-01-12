@@ -3,7 +3,7 @@
 <html>
 <body>
   <video id="video" autoplay></video>
-  <canvas width="320" id="canvas" height="240" style="display:none;"></canvas>
+  <canvas width="160" id="canvas" height="120" style="display:none;"></canvas>
   <div class="obj" style="
     position: absolute;
     background: red;
@@ -42,10 +42,12 @@
     animation_interval = setInterval(() => {
       obj.style.top = voffset + range/2 + range * Math.sin(i / 100) + 'px'
       i = i + 1
-      context.drawImage(video, 0, 0, 320, 240)
-      data = context.getImageData(0, 0, 320, 240).data
+      context.drawImage(video, 0, 0, 160, 120)
+      data = Array.from(context.getImageData(0, 0, 160, 120).data)
+      array = nj.array(data).reshape(4, 160, 120).tolist()
+      m = tf.tensor3d(array, array.shape)      
       //data = canvas.toDataURL("image/jpeg")
-
+      /*
       a = 100
       b = 40
       c = 100
@@ -54,6 +56,7 @@
       array2 = nj.random([b,c]).tolist()
       n = tf.tensor2d(array2, [b, c])
       d = m.matMul(n)
+      */
 
       now = Date.now()
       stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + data[1000]
