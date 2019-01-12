@@ -42,23 +42,20 @@
     animation_interval = setInterval(() => {
       obj.style.top = voffset + range/2 + range * Math.sin(i / 100) + 'px'
       i = i + 1
-      context.drawImage(video, 0, 0, 160, 120)
-      data = Array.from(context.getImageData(0, 0, 160, 120).data)
-      m = tf.tensor1d(data)
-      //data = canvas.toDataURL("image/jpeg")
-      /*
-      a = 100
-      b = 40
-      c = 100
-      array1 = nj.random([a,b]).tolist()
-      m = tf.tensor2d(array1, [a, b])
-      array2 = nj.random([b,c]).tolist()
-      n = tf.tensor2d(array2, [b, c])
-      d = m.matMul(n)
-      */
+      w = 160
+      h = 120
+      context.drawImage(video, 0, 0, w, h)
+      data = context.getImageData(0, 0, w, h).data
+      array1 = nj.zeros([w,h]).tolist()
+      maxp = 0
+      for (i = 0; i < data.length; i=i+4) {
+        j = i / 4
+        array1[parseInt(j) % w][parseInt(j / w)] = data[i]
+      }
+      m = tf.tensor2d(array1, [w, h])
 
       now = Date.now()
-      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + data[1000]
+      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + array1[100][100]
       last_time = now
     }, 20)
   </script>
