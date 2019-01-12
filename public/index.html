@@ -44,8 +44,7 @@
       i = i + 1
       context.drawImage(video, 0, 0, 160, 120)
       data = Array.from(context.getImageData(0, 0, 160, 120).data)
-      array = nj.array(data).reshape(4, 160, 120).tolist()
-      m = tf.tensor3d(array, array.shape)      
+      m = tf.tensor1d(data)
       //data = canvas.toDataURL("image/jpeg")
       /*
       a = 100
