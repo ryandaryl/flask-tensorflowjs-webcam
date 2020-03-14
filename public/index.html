@@ -2,15 +2,8 @@
 <script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
 <html>
 <body>
-  <video id="video" autoplay></video>
-  <canvas width="160" id="canvas" height="120" style="display:none;"></canvas>
-  <div class="obj" style="
-    position: absolute;
-    background: red;
-    height: 20px;
-    width: 20px;
-    top: 0px;
-  "></div>
+  <video id="video" autoplay style="-webkit-transform: rotate(-90deg);"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
   <div id="stats" style="
     position: absolute;
     font-size: 40;
@@ -25,8 +18,8 @@
     navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
-        width: 640,
-        height: 480,
+        width: 480,
+        height: 640,
         facingMode: 'environment'
       }
     })
@@ -36,14 +29,12 @@
     i = 0
     range = 50
     voffset = 50
-    obj = document.getElementsByClassName('obj')[0]
     stats = document.getElementById('stats')
     last_time = Date.now()
+    w = 160
+    h = 120
+    maxp = 0
     animation_interval = setInterval(() => {
-      obj.style.top = voffset + range/2 + range * Math.sin(i / 100) + 'px'
-      i = i + 1
-      w = 160
-      h = 120
       context.drawImage(video, 0, 0, w, h)
       data = context.getImageData(0, 0, w, h).data
       array1 = nj.zeros([w,h]).tolist()
@@ -53,11 +44,12 @@
         array1[parseInt(j) % w][parseInt(j / w)] = data[i]
       }
       m = tf.tensor2d(array1, [w, h])
-
+      a = tf.argMax(m)
+      indices = tf.tensor1d(nj.arange(0, 200, 40).tolist(), 'int32')
       now = Date.now()
-      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + array1[100][100]
+      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + array1[100][100] + ' ' + a.gather(indices)
       last_time = now
-    }, 20)
+    }, 100)
   </script>
 </body>
 </html>
