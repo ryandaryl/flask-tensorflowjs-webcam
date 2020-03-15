@@ -12,6 +12,14 @@
   ">
   No write.
   </div>
+  <div class="obj" style="
+    position: absolute;
+    background: red;
+    height: 20px;
+    width: 20px;
+    top: 0px;
+    left: 78px;
+  "></div>
   <script>
     canvas = document.getElementById('canvas')
     context = canvas.getContext('2d')
@@ -26,28 +34,47 @@
     .then(stream => {
       document.getElementById('video').srcObject = stream
     })
-    i = 0
-    range = 50
-    voffset = 50
     stats = document.getElementById('stats')
-    last_time = Date.now()
+    temp_div = document.createElement('div')
+    left_offset = 78
     w = 160
     h = 120
-    maxp = 0
+    stride_length = 5
+    shape_array = Array(Math.ceil((h + 1) / stride_length))
+    for (i = 0; i < shape_array.length; i++) {
+        shape_array[i] = document.createElement("div")
+        shape_array[i].innerHTML = `
+            <div id="shape${i}" style="
+                position: absolute;
+                background: red;
+                height: 20px;
+                width: 20px;
+                top: 0px;
+                left: ${left_offset + i * stride_length * 4}px;
+            "></div>
+        `
+        document.body.appendChild(shape_array[i])
+        shape_array[i] = document.getElementById(`shape${i}`)
+    }
+    obj = document.getElementsByClassName('obj')[0]
+    last_time = Date.now()
     animation_interval = setInterval(() => {
       context.drawImage(video, 0, 0, w, h)
       data = context.getImageData(0, 0, w, h).data
       array1 = nj.zeros([w,h]).tolist()
-      maxp = 0
       for (i = 0; i < data.length; i=i+4) {
         j = i / 4
         array1[parseInt(j) % w][parseInt(j / w)] = data[i]
       }
       m = tf.tensor2d(array1, [w, h])
       a = tf.argMax(m)
-      indices = tf.tensor1d(nj.arange(0, 200, 40).tolist(), 'int32')
+      indices = tf.tensor1d(nj.arange(0, h + 1, stride_length).tolist(), 'int32')
+      b = a.gather(indices)
       now = Date.now()
-      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + array1[100][100] + ' ' + a.gather(indices)
+      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + array1[100][100] + ' ' + b
+      for (i = 0; i < shape_array.length; i++) {
+          shape_array[i].style.top = (160 - b.get([i])) * 4
+      }
       last_time = now
     }, 100)
   </script>
