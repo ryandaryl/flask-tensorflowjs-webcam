@@ -2,43 +2,33 @@
 <script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
 <html>
 <body>
-  <video id="video" autoplay style="-webkit-transform: rotate(-90deg);"></video>
-  <canvas id="canvas" style="display:none;"></canvas>
+  <video id="video" autoplay></video>
+  <canvas width="640" id="canvas" height="480" style="display:none;"></canvas>
   <div id="stats" style="
     position: absolute;
     font-size: 40;
     color: white;
     top: 0px;
   ">
-  No write.
+  No write
   </div>
-  <div class="obj" style="
-    position: absolute;
-    background: red;
-    height: 20px;
-    width: 20px;
-    top: 0px;
-    left: 78px;
-  "></div>
   <script>
     canvas = document.getElementById('canvas')
     context = canvas.getContext('2d')
     navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
-        width: 480,
-        height: 640,
+        width: 640,
+        height: 480,
         facingMode: 'environment'
       }
     })
     .then(stream => {
       document.getElementById('video').srcObject = stream
     })
-    stats = document.getElementById('stats')
-    temp_div = document.createElement('div')
-    left_offset = 78
-    w = 160
-    h = 120
+    top_offset = 0
+    w = 120
+    h = 160
     stride_length = 5
     shape_array = Array(Math.ceil((h + 1) / stride_length))
     for (i = 0; i < shape_array.length; i++) {
@@ -49,16 +39,15 @@
                 background: red;
                 height: 20px;
                 width: 20px;
-                top: 0px;
-                left: ${left_offset + i * stride_length * 4}px;
+                top: ${top_offset + i * stride_length * 4}px;
+                left: 0px;
             "></div>
         `
         document.body.appendChild(shape_array[i])
         shape_array[i] = document.getElementById(`shape${i}`)
     }
-    obj = document.getElementsByClassName('obj')[0]
     last_time = Date.now()
-    animation_interval = setInterval(() => {
+    setInterval(() => {tf.tidy(() => {
       context.drawImage(video, 0, 0, w, h)
       data = context.getImageData(0, 0, w, h).data
       array1 = nj.zeros([w,h]).tolist()
@@ -70,13 +59,14 @@
       a = tf.argMax(m)
       indices = tf.tensor1d(nj.arange(0, h + 1, stride_length).tolist(), 'int32')
       b = a.gather(indices)
-      now = Date.now()
-      stats.innerHTML = parseInt(1000 / (now - last_time)) + ' ' + array1[100][100] + ' ' + b
       for (i = 0; i < shape_array.length; i++) {
-          shape_array[i].style.top = (160 - b.get([i])) * 4
+          shape_array[i].style.left = b.get([i]) * 4
       }
+      now = Date.now()
+      stats.innerHTML = parseInt(1000 / (now - last_time))
       last_time = now
-    }, 100)
+      return undefined
+    })}, 100)
   </script>
 </body>
 </html>
