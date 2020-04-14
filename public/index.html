@@ -13,25 +13,34 @@
   No write
   </div>
   <script>
-    canvas = document.getElementById('canvas')
-    context = canvas.getContext('2d')
-    navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        width: 640,
-        height: 480,
-        facingMode: 'environment'
-      }
-    })
-    .then(stream => {
-      document.getElementById('video').srcObject = stream
-    })
-    top_offset = 0
-    w = 120
-    h = 160
-    stride_length = 5
-    shape_array = Array(Math.ceil((h + 1) / stride_length))
-    for (i = 0; i < shape_array.length; i++) {
+    function loopIteration(w, h) {
+      tf.tidy(() => {
+        context.drawImage(video, 0, 0, w, h)
+        data = context.getImageData(0, 0, w, h).data
+        array1 = nj.zeros([w,h]).tolist()
+        for (i = 0; i < data.length; i=i+4) {
+          j = i / 4
+          array1[parseInt(j) % w][parseInt(j / w)] = data[i]
+        }
+        m = tf.tensor2d(array1, [w, h])
+        a = tf.argMax(m)
+        indices = tf.tensor1d(nj.arange(0, h + 1, stride_length).tolist(), 'int32')
+        b = a.gather(indices)
+        for (i = 0; i < shape_array.length; i++) {
+          shape_array[i].style.left = b.get([i]) * 4
+        }
+        now = Date.now()
+        stats.innerHTML = parseInt(1000 / (now - last_time))
+        last_time = now
+        return undefined
+      })
+    }
+
+    function loopInit(w, h) {
+      top_offset = 0
+      stride_length = 5
+      shape_array = Array(Math.ceil((h + 1) / stride_length))
+      for (i = 0; i < shape_array.length; i++) {
         shape_array[i] = document.createElement("div")
         shape_array[i].innerHTML = `
             <div id="shape${i}" style="
@@ -45,28 +54,30 @@
         `
         document.body.appendChild(shape_array[i])
         shape_array[i] = document.getElementById(`shape${i}`)
+      }
+      last_time = Date.now()
+      setInterval(() => { loopIteration(w, h) }, 100)
     }
-    last_time = Date.now()
-    setInterval(() => {tf.tidy(() => {
-      context.drawImage(video, 0, 0, w, h)
-      data = context.getImageData(0, 0, w, h).data
-      array1 = nj.zeros([w,h]).tolist()
-      for (i = 0; i < data.length; i=i+4) {
-        j = i / 4
-        array1[parseInt(j) % w][parseInt(j / w)] = data[i]
+
+    canvas = document.getElementById('canvas')
+    context = canvas.getContext('2d')
+    video = document.getElementById('video')
+    navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        width: 640,
+        height: 480,
+        facingMode: 'environment'
       }
-      m = tf.tensor2d(array1, [w, h])
-      a = tf.argMax(m)
-      indices = tf.tensor1d(nj.arange(0, h + 1, stride_length).tolist(), 'int32')
-      b = a.gather(indices)
-      for (i = 0; i < shape_array.length; i++) {
-          shape_array[i].style.left = b.get([i]) * 4
-      }
-      now = Date.now()
-      stats.innerHTML = parseInt(1000 / (now - last_time))
-      last_time = now
-      return undefined
-    })}, 100)
+    })
+    .then(stream => {
+      video.srcObject = stream
+    })
+    video.addEventListener( "loadedmetadata", function (e) {
+      w = this.videoWidth,
+      h = this.videoHeight
+      loopInit(w / 4, h / 4)
+    }, false )
   </script>
 </body>
 </html>
