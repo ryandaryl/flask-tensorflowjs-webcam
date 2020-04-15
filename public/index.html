@@ -1,5 +1,4 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.11.7"></script>
-<script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
 <html>
 <body>
   <video id="video" autoplay></video>
@@ -13,18 +12,20 @@
   No write
   </div>
   <script>
-    class htmlGrid {
-      constructor(videoHeight, scaleFactorX, scaleFactorY) {
+
+    class HtmlGrid {
+      constructor(videoHeight, scaleFactorX, scaleFactorY, colour='black') {
         this.top_offset = 0
         this.scaleFactorX = scaleFactorX
         this.scaleFactorY = scaleFactorY
-        this.shape_array = Array(Math.ceil(videoHeight / this.scaleFactorY + 1))
+        this.shape_array = Array(Math.ceil(videoHeight / this.scaleFactorY))
+        console.log(this.shape_array)
         for (var i = 0; i < this.shape_array.length; i++) {
           this.shape_array[i] = document.createElement("div")
           this.shape_array[i].innerHTML = `
             <div id="shape${i}" style="
                 position: absolute;
-                background: red;
+                background: ${colour};
                 height: 20px;
                 width: 20px;
                 top: ${this.top_offset + i * this.scaleFactorY}px;
@@ -36,61 +37,57 @@
         }
       }
 
-      update(b) {
+      update(tensorX) {
         for (i = 0; i < this.shape_array.length; i++) {
-          this.shape_array[i].style.left = b.get([i]) * this.scaleFactorX
+          this.shape_array[i].style.left = tensorX.get([i]) * this.scaleFactorX
         }
       }
     }
 
-    function tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY) {
+    function tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY, channel) {
+      channel_offset = {red: 0, green: 1, blue: 2}
       scaledWidth = Math.ceil(videoWidth / scaleFactorX)
       scaledHeight = Math.ceil(videoHeight / scaleFactorY)
       context.drawImage(video, 0, 0, scaledWidth, scaledHeight)
       data = context.getImageData(0, 0, scaledWidth, scaledHeight).data
-      array1 = nj.zeros([scaledWidth, scaledHeight]).tolist()
+      array1 = Array.from(Array(scaledWidth), () => { return Array(scaledHeight) })
       for (i = 0; i < data.length; i=i+4) {
-        j = i / 4
-        array1[parseInt(j) % scaledWidth][parseInt(j / scaledWidth)] = data[i]
+        array1[parseInt(i / 4) % scaledWidth][parseInt(i / (4 * scaledWidth))] = data[i + channel_offset[channel]]
       }
       return tf.tensor2d(array1, [scaledWidth, scaledHeight])
     }
 
+
     function loopIteration(videoWidth, videoHeight, scaleFactorX, scaleFactorY, myGrid) {
       tf.tidy(() => {
-        m = tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY)
+        m = tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY, channel='red')
         a = tf.argMax(m)
-        indices = tf.tensor1d(nj.arange(0, Math.ceil(videoHeight / scaleFactorY) + 1).tolist(), 'int32')
-        b = a.gather(indices)
-        myGrid.update(b)
+        myGrid.update(a)
         now = Date.now()
+        if (!('last_time' in window)) last_time = now
         stats.innerHTML = parseInt(1000 / (now - last_time))
         last_time = now
         return undefined
       })
     }
 
-    function loopInit(videoWidth, videoHeight, scaleFactorX, scaleFactorY) {
-      redGrid = new htmlGrid(videoHeight, scaleFactorX, scaleFactorY)
-      last_time = Date.now()
-      setInterval(() => { loopIteration(videoWidth, videoHeight, scaleFactorX, scaleFactorY, redGrid) }, 100)
-    }
 
     canvas = document.getElementById('canvas')
     context = canvas.getContext('2d')
     navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: {
-        width: 640,
-        height: 480,
-        facingMode: 'environment'
-      }
+      video: {facingMode: 'environment'}
     })
     .then(stream => {
       video.srcObject = stream
     })
     video.addEventListener( "loadedmetadata", function (e) {
-      loopInit(this.videoWidth, this.videoHeight, 8, 40)
+      videoWidth = this.videoWidth
+      videoHeight = this.videoHeight
+      scaleFactorX = 4
+      scaleFactorY = 20
+      redGrid = new HtmlGrid(videoHeight, scaleFactorX, scaleFactorY, 'red')
+      setInterval(() => { loopIteration(videoWidth, videoHeight, scaleFactorX, scaleFactorY, redGrid) }, 100)
     }, false )
   </script>
 </body>
