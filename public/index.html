@@ -13,22 +13,56 @@
   No write
   </div>
   <script>
-    function loopIteration(w, h) {
+    class htmlGrid {
+      constructor(videoHeight, scaleFactorX, scaleFactorY) {
+        this.top_offset = 0
+        this.scaleFactorX = scaleFactorX
+        this.scaleFactorY = scaleFactorY
+        this.shape_array = Array(Math.ceil(videoHeight / this.scaleFactorY + 1))
+        for (var i = 0; i < this.shape_array.length; i++) {
+          this.shape_array[i] = document.createElement("div")
+          this.shape_array[i].innerHTML = `
+            <div id="shape${i}" style="
+                position: absolute;
+                background: red;
+                height: 20px;
+                width: 20px;
+                top: ${this.top_offset + i * this.scaleFactorY}px;
+                left: 0px;
+            "></div>
+          `
+          document.body.appendChild(this.shape_array[i])
+          this.shape_array[i] = document.getElementById(`shape${i}`)
+        }
+      }
+
+      update(b) {
+        for (i = 0; i < this.shape_array.length; i++) {
+          this.shape_array[i].style.left = b.get([i]) * this.scaleFactorX
+        }
+      }
+    }
+
+    function tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY) {
+      scaledWidth = Math.ceil(videoWidth / scaleFactorX)
+      scaledHeight = Math.ceil(videoHeight / scaleFactorY)
+      context.drawImage(video, 0, 0, scaledWidth, scaledHeight)
+      data = context.getImageData(0, 0, scaledWidth, scaledHeight).data
+      array1 = nj.zeros([scaledWidth, scaledHeight]).tolist()
+      for (i = 0; i < data.length; i=i+4) {
+        j = i / 4
+        array1[parseInt(j) % scaledWidth][parseInt(j / scaledWidth)] = data[i]
+      }
+      return tf.tensor2d(array1, [scaledWidth, scaledHeight])
+    }
+
+    function loopIteration(videoWidth, videoHeight, scaleFactorX, scaleFactorY, myGrid) {
       tf.tidy(() => {
-        context.drawImage(video, 0, 0, w, h)
-        data = context.getImageData(0, 0, w, h).data
-        array1 = nj.zeros([w,h]).tolist()
-        for (i = 0; i < data.length; i=i+4) {
-          j = i / 4
-          array1[parseInt(j) % w][parseInt(j / w)] = data[i]
-        }
-        m = tf.tensor2d(array1, [w, h])
+        m = tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY)
         a = tf.argMax(m)
-        indices = tf.tensor1d(nj.arange(0, h + 1, stride_length).tolist(), 'int32')
+        indices = tf.tensor1d(nj.arange(0, Math.ceil(videoHeight / scaleFactorY) + 1).tolist(), 'int32')
         b = a.gather(indices)
-        for (i = 0; i < shape_array.length; i++) {
-          shape_array[i].style.left = b.get([i]) * 4
-        }
+        myGrid.update(b)
         now = Date.now()
         stats.innerHTML = parseInt(1000 / (now - last_time))
         last_time = now
@@ -36,32 +70,14 @@
       })
     }
 
-    function loopInit(w, h) {
-      top_offset = 0
-      stride_length = 5
-      shape_array = Array(Math.ceil((h + 1) / stride_length))
-      for (i = 0; i < shape_array.length; i++) {
-        shape_array[i] = document.createElement("div")
-        shape_array[i].innerHTML = `
-            <div id="shape${i}" style="
-                position: absolute;
-                background: red;
-                height: 20px;
-                width: 20px;
-                top: ${top_offset + i * stride_length * 4}px;
-                left: 0px;
-            "></div>
-        `
-        document.body.appendChild(shape_array[i])
-        shape_array[i] = document.getElementById(`shape${i}`)
-      }
+    function loopInit(videoWidth, videoHeight, scaleFactorX, scaleFactorY) {
+      redGrid = new htmlGrid(videoHeight, scaleFactorX, scaleFactorY)
       last_time = Date.now()
-      setInterval(() => { loopIteration(w, h) }, 100)
+      setInterval(() => { loopIteration(videoWidth, videoHeight, scaleFactorX, scaleFactorY, redGrid) }, 100)
     }
 
     canvas = document.getElementById('canvas')
     context = canvas.getContext('2d')
-    video = document.getElementById('video')
     navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
@@ -74,9 +90,7 @@
       video.srcObject = stream
     })
     video.addEventListener( "loadedmetadata", function (e) {
-      w = this.videoWidth,
-      h = this.videoHeight
-      loopInit(w / 4, h / 4)
+      loopInit(this.videoWidth, this.videoHeight, 8, 40)
     }, false )
   </script>
 </body>
