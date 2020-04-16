@@ -19,7 +19,6 @@
         this.scaleFactorX = scaleFactorX
         this.scaleFactorY = scaleFactorY
         this.shape_array = Array(Math.ceil(videoHeight / this.scaleFactorY))
-        console.log(this.shape_array)
         for (var i = 0; i < this.shape_array.length; i++) {
           this.shape_array[i] = document.createElement("div")
           this.shape_array[i].innerHTML = `
@@ -44,10 +43,10 @@
       }
     }
 
-    function tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY, channel) {
+    function tensorFromVideo(scaleFactorX, scaleFactorY, channel) {
       channel_offset = {red: 0, green: 1, blue: 2}
-      scaledWidth = Math.ceil(videoWidth / scaleFactorX)
-      scaledHeight = Math.ceil(videoHeight / scaleFactorY)
+      scaledWidth = Math.ceil(video.videoWidth / scaleFactorX)
+      scaledHeight = Math.ceil(video.videoHeight / scaleFactorY)
       context.drawImage(video, 0, 0, scaledWidth, scaledHeight)
       data = context.getImageData(0, 0, scaledWidth, scaledHeight).data
       array1 = Array.from(Array(scaledWidth), () => { return Array(scaledHeight) })
@@ -58,14 +57,22 @@
     }
 
 
-    function loopIteration(videoWidth, videoHeight, scaleFactorX, scaleFactorY, myGrid) {
+    function loopIteration(scaleFactorX, scaleFactorY, displayGrid, timeList=null) {
       tf.tidy(() => {
-        m = tensorFromVideo(videoWidth, videoHeight, scaleFactorX, scaleFactorY, channel='red')
+        if (timeList == null) timeList = Array(20)
+        timeSum = timeList.reduce((total, i) => total + i, 0)
+        timeAverage = Math.ceil(timeSum / timeList.length)
+        timeWait = Math.min(Math.ceil(1000 / timeAverage) - 1, 500)
+        setTimeout(() => { loopIteration(scaleFactorX, scaleFactorY, displayGrid, timeList) }, timeWait)
+        m = tensorFromVideo(scaleFactorX, scaleFactorY, channel='red')
         a = tf.argMax(m)
-        myGrid.update(a)
+        displayGrid.update(a)
         now = Date.now()
         if (!('last_time' in window)) last_time = now
-        stats.innerHTML = parseInt(1000 / (now - last_time))
+        timeInterval = parseInt(1000 / (now - last_time))
+        timeList.shift()
+        timeList.push(timeInterval)
+        stats.innerHTML = timeAverage
         last_time = now
         return undefined
       })
@@ -82,12 +89,10 @@
       video.srcObject = stream
     })
     video.addEventListener( "loadedmetadata", function (e) {
-      videoWidth = this.videoWidth
-      videoHeight = this.videoHeight
       scaleFactorX = 4
       scaleFactorY = 20
-      redGrid = new HtmlGrid(videoHeight, scaleFactorX, scaleFactorY, 'red')
-      setInterval(() => { loopIteration(videoWidth, videoHeight, scaleFactorX, scaleFactorY, redGrid) }, 100)
+      redGrid = new HtmlGrid(this.videoHeight, scaleFactorX, scaleFactorY, 'red')
+      setTimeout(() => { loopIteration(scaleFactorX, scaleFactorY, redGrid) }, 100)
     }, false )
   </script>
 </body>
